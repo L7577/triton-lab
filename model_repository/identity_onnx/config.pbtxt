@@ -1,0 +1,9 @@
+name: "identity_onnx"
+backend: "onnxruntime"
+max_batch_size: 0
+instance_group [
+  {
+    count: 1
+    kind: KIND_GPU
+  }
+]
