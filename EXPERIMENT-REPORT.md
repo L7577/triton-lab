@@ -92,7 +92,7 @@ model_repository/
 **Step 1: 生成 ONNX 模型**
 
 ```bash
-cd /home/l/dev/testclaude/triton-lab
+cd triton-lab
 python3 generate_onnx.py identity.onnx
 
 # 输出: Generated identity.onnx (148 bytes)
@@ -395,7 +395,7 @@ P99 延迟 (ms)
 ## 6. 复现指南
 
 ```bash
-cd /home/l/dev/testclaude/triton-lab
+cd triton-lab
 
 # 前置条件: Docker + nvidia-container-toolkit + Triton 镜像已拉取
 
