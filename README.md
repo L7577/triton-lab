@@ -2,6 +2,8 @@
 
 基于 [NVIDIA Triton Inference Server](https://github.com/triton-inference-server/server) 的并发、动态批处理、多实例推理性能实验台。目标 GPU 为 GTX 1050 Ti (4GB)，使用自生成的 Identity ONNX 模型进行可重复的性能基准测试。
 
+**本仓库只包含实验一和实验二**（Docker + 单卡 Triton）。实验三（K8s + HAMi-DRA 多 Pod 分片）位于独立仓库 [ai-inference-lab](https://github.com/L7577/ai-inference-lab)，运行环境与步骤完全不同，请勿在此尝试。
+
 ## 项目结构
 
 ```
@@ -19,10 +21,23 @@ triton-lab/
 │   └── identity_onnx/
 │       ├── 1/model.onnx           # ONNX 模型文件
 │       └── config.pbtxt           # 当前活跃的 Triton 配置
-├── plan.md                        # 原始实验计划（阶段一～三）
-├── ADJUSTED-PLAN.md               # 调整后的实施方案
+├── plan.md                        # 原始实验计划（含实验三，仅作参考）
+├── ADJUSTED-PLAN.md               # 调整后的实施方案（含实验三，仅作参考）
 └── EXPERIMENT-REPORT.md           # 实验一、二的完整报告
 ```
+
+> **注意**：`plan.md` 和 `ADJUSTED-PLAN.md` 描述了三阶段实验计划，其中实验三涉及 K8s/HAMi-DRA，不能在本仓库执行。此处保留作为设计上下文参考。实验内容以 [EXPERIMENT-REPORT.md](./EXPERIMENT-REPORT.md) 为准。
+
+## 实验环境
+
+| 项 | 说明 |
+|---|---|
+| GPU | NVIDIA GTX 1050 Ti (4GB) |
+| 运行方式 | Docker 容器，不需要 Kubernetes |
+| Triton 镜像 | `nvcr.io/nvidia/tritonserver:22.12-py3` |
+| 模型 | 自生成 Identity ONNX（148 bytes，零下载） |
+| 压测工具 | `benchmark.py`（Python 脚本，HTTP 调用） |
+| 监控 | `nvidia-smi` + `curl localhost:8002/metrics` |
 
 ## 快速开始
 
@@ -56,10 +71,9 @@ make help           # 查看所有命令
 
 | 实验 | 配置 | 目标 |
 |------|------|------|
-| 实验一 | `max_batch_size=0`, 1 GPU 实例 | 建立无优化性能基线 |
+| 实验一 | `max_batch_size=0`, 1 GPU 实例 | 建立单实例无优化性能基线 |
 | 实验二a | `max_batch_size=16`, dynamic batching, 1 实例 | 量化动态批处理对吞吐/延迟的影响 |
 | 实验二b | `max_batch_size=16`, dynamic batching, 2 实例 | 量化多实例的边际收益与显存开销 |
-| 实验三 | K8s + HAMi-DRA 多 Pod GPU 分片（已完成于 [ai-inference-lab](https://github.com/L7577/ai-inference-lab)） | 验证 GPU 分片下的性能隔离 |
 
 ## 为什么用 Identity ONNX 而非真实模型
 
@@ -70,9 +84,8 @@ make help           # 查看所有命令
 ## 关键发现
 
 - 无批处理时吞吐随并发不升反降（43 → 37 req/s），单实例成为串行化瓶颈
-- 动态批处理使吞吐随并发增长并稳定在平台（~40 req/s），但因 100μs 排队延迟，单并发延迟略增
+- 动态批处理使吞吐随并发增长并稳定在平台（~40 req/s），但单并发延迟因排队略增
 - 双实例吞吐提升约 6%，显存增加 25%——边际收益递减
 - JSON 序列化是 hidden bottleneck，使用 gRPC 或 shared memory 可进一步提升
-- 实验三在 [ai-inference-lab](https://github.com/L7577/ai-inference-lab) 完成：3 个 K8s Pod 以不同 cores/memory 分片共享一张 GTX 1050 Ti，验证了 HAMi-DRA 的资源隔离有效性
 
-详见 [EXPERIMENT-REPORT.md](./EXPERIMENT-REPORT.md).
+详见 [EXPERIMENT-REPORT.md](./EXPERIMENT-REPORT.md)。
